@@ -1,49 +1,26 @@
 # TexSmith
 Procedural texture creator on the web.
 
-# Getting Started with Create React App
+https://en.wikipedia.org/wiki/Perlin_noise
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+https://www.reddit.com/r/gamedev/comments/2d284n/understanding_perlin_noise_an_indepth_look_at_the/
 
-## Available Scripts
+http://adrianb.io/2014/08/09/perlinnoise.html
 
-In the project directory, you can run:
+https://mrl.cs.nyu.edu/~perlin/paper445.pdf
 
-### `npm start`
+https://www.cs.montana.edu/courses/spring2005/525/students/Thiesen1.pdf
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in the browser.
+https://rtouti.github.io/graphics/perlin-noise-algorithm
 
-The page will reload if you make edits.\
-You will also see any lint errors in the console.
+https://www.attosol.com/top-20-projects-on-github/
 
-### `npm test`
+https://levelup.gitconnected.com/10-awesome-github-repos-every-developer-must-know-c0b0839a17d3
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+https://github.com/sindresorhus/awesome
 
-### `npm run build`
+https://www.scratchapixel.com/lessons/procedural-generation-virtual-worlds/procedural-patterns-noise-part-1/simple-pattern-examples.html
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+https://thebookofshaders.com/11/
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
-
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
-
-### `npm run eject`
-
-**Note: this is a one-way operation. Once you `eject`, you can’t go back!**
-
-If you aren’t satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
-
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you’re on your own.
-
-You don’t have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn’t feel obligated to use this feature. However we understand that this tool wouldn’t be useful if you couldn’t customize it when you are ready for it.
-
-## Learn More
-
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
-
-To learn React, check out the [React documentation](https://reactjs.org/).
+https://www.mdpi.com/1424-8220/20/4/1135

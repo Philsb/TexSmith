@@ -21,6 +21,11 @@ module: {
         exclude: /node_modules/,
         use: ["babel-loader"],
       },
+      // `ts` and `tsx` files are parsed using `ts-loader`
+      { 
+        test: /\.(ts|tsx)$/, 
+        loader: "ts-loader" 
+      },
       {
         test: /\.(sa|sc|c)ss$/, // styles files
         use: ["style-loader", "css-loader", "sass-loader"],
@@ -34,7 +39,7 @@ module: {
   },
   // pass all js files through Babel
   resolve: {
-    extensions: ["*", ".js", ".jsx"],
+    extensions: ["*", ".js", ".jsx", ".ts", ".tsx"],
   },
   devServer: {
     static: {
