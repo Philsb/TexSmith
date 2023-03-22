@@ -1,6 +1,6 @@
-import { Interpolation } from "./mathUtils";
+import { Interpolation, Clamp } from "./mathUtils";
 
-const NormalizeRanges = (arr: any[]) => {
+const NormalizeToRanges = (arr: any[], min: number = 0, max: number = 1) => {
     let arrSize = arr.length;
 
     let minNum = Number.MAX_VALUE;
@@ -20,7 +20,34 @@ const NormalizeRanges = (arr: any[]) => {
     if (maxNum-minNum < 0.0001) 
         return arr;
 
-    return arr.map(x => (x-minNum)/(maxNum-minNum));
+    return arr.map(x => Interpolation.Lerp(min,max, (x-minNum)/(maxNum-minNum)));
 }
 
-export {NormalizeRanges};
+const EvaluateColorGradient = (value: number, gradients: {x: number, color: number[]}[], fade = Interpolation.SmoothStep) => {
+    //If gradients are not sorted, sort them
+    gradients.sort((a,b) => a.x - b.x);
+
+    let returnedColor = [0,0,0];
+
+    for (let index = 0; index < gradients.length; index ++) {
+        let point = gradients[index];
+        
+        if (value < point.x) {
+            let lastPoint = gradients[ Clamp (index - 1 , 0, gradients.length - 1)];
+
+            let alpha = (value - lastPoint.x)/ (point.x - lastPoint.x);
+
+            let r = fade(lastPoint.color[0] , point.color[0], alpha);
+            let g = fade(lastPoint.color[1] , point.color[1], alpha);
+            let b = fade(lastPoint.color[2] , point.color[2], alpha);
+
+            returnedColor = [r,g,b];
+            break;
+        }
+    }
+ 
+
+    return returnedColor;
+};
+
+export {NormalizeToRanges, EvaluateColorGradient};
