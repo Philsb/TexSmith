@@ -29,7 +29,26 @@ const Clamp = (number, min, max) => {
     return Math.min(Math.max(number, min), max);
 };
 
+const Dot2D = (vec1, vec2) => {
+    return (vec2[0]*vec1[0] + vec2[1]*vec1[1]);
+};
 
-export {Interpolation, Clamp};
+const Magnitude2D = (vec) => {
+    return Math.sqrt(vec[0]*vec[0] + vec[1]*vec[1]);
+};
+
+const Magnitude3D = (vec) => {
+    return Math.sqrt(vec[0]*vec[0] + vec[1]*vec[1] + vec[2]*vec[2]);
+};
+
+const MagnitudeSquared2D = (vec) => {
+    return vec[0]*vec[0] + vec[1]*vec[1];
+};
+
+const MagnitudeSquared3D = (vec) => {
+    return vec[0]*vec[0] + vec[1]*vec[1] + vec[2]*vec[2];
+};
+
+export {Interpolation, Clamp, Dot2D, Magnitude2D, Magnitude3D, MagnitudeSquared2D, MagnitudeSquared3D};
 
 

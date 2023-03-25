@@ -1,4 +1,5 @@
-import { Interpolation } from "./mathUtils";
+import { Z_ASCII } from "zlib";
+import { Dot2D, Interpolation, MagnitudeSquared3D } from "./mathUtils";
 
 //TODO: random library with hash algorithm
 
@@ -47,15 +48,14 @@ const Noise = {
         return this.Noise32_Squirrel13(x + (PRIME1 * y) + (PRIME2 * z), seed);
     },
 
-    perlinNoise3d : function({seed = 0, freq = 4, x = 0, y  =  0, z = 0, customGradients = null, fade = Interpolation.SmoothStep}) {
+    PerlinNoise3d : function({seed = 0, freq = 4, x = 0, y = 0, z = 0, customGradients = null, fade = Interpolation.SmoothStep}) {
     
-        const dot2D = (vec1, vec2) => {
-            return (vec2[0]*vec1[0] + vec2[1]*vec1[1]);
-        };
 
         let quadrantX = Math.floor(x*freq);
         let quadrantY = Math.floor(y*freq);
+        let quadrantZ = Math.floor(z*freq);
         let q00,q10,q01,q11;
+
         //If it already has precomputed the gradients dont compute them again
         if (customGradients != null) {
             let gradientSize = customGradients.length - 1;
@@ -84,19 +84,60 @@ const Noise = {
         let sx = (x*freq) - quadrantX;
         let sy = (y*freq) - quadrantY;
 
-        let n0 = dot2D(q00, [sx, sy]);
-        let n1 = dot2D(q10, [sx-1, sy]);
+        let n0 = Dot2D(q00, [sx, sy]);
+        let n1 = Dot2D(q10, [sx-1, sy]);
         let ix0 = fade(n0, n1, sx);
 
-        n0 = dot2D(q01, [sx, sy-1]);
-        n1 = dot2D(q11, [sx-1, sy-1]);
+        n0 = Dot2D(q01, [sx, sy-1]);
+        n1 = Dot2D(q11, [sx-1, sy-1]);
         let ix1 = fade(n0, n1, sx);
 
-        let value = fade(ix0, ix1, sy) ;
+        let value = Interpolation.Lerp(ix0, ix1, sy) ;
         //Returns [-1,1] so multiply and add by 0.5 -> [0,1]
         return value;
     },
     
+    /*
+    Fast Worley Noise divides the coordinates with cells, each cell with 1 point.
+    This is instead of the original worley that just spreads points randomly on the coordinates.
+    */
+    FastWorleyNoise3D: function ({seed = 0, freq = 4, x = 0, y = 0, z = 0, customCellLocations = null}) {
+        let quadrantX = Math.floor(x*freq);
+        let quadrantY = Math.floor(y*freq);
+        let quadrantZ = Math.floor(z*freq);
+        
+        let value = 0.0;
+        //If it already has precomputed the locations dont compute them again
+        if (customCellLocations != null) {
+            let leastDistance = Number.MAX_VALUE;
+            for (let xIndex: number = -1; xIndex <=  1; xIndex++) {
+                for (let yIndex: number = -1; yIndex <= 1; yIndex++) {
+                    for (let zIndex: number = -1; zIndex <= 1; zIndex++) {   
+
+                        let index: number = ((quadrantX+xIndex)%freq + ((quadrantY+yIndex)%freq * freq) + (zIndex+1 * freq**2));                       
+                        let location = customCellLocations[index % (customCellLocations.length - 1)];
+
+                        let sx = (x*freq) - quadrantX;
+                        let sy = (y*freq) - quadrantY;
+                        let sz = (z*freq) - quadrantZ;
+
+                        let magnitudeSquared = MagnitudeSquared3D([sx - (location[0] + xIndex), sy - (location[1] + yIndex), sz - (location[2] + zIndex) ])
+
+                        if (magnitudeSquared < leastDistance) {
+                            leastDistance = magnitudeSquared;
+                        }
+                    }
+                }
+            }
+
+            value = Math.sqrt(leastDistance);
+        }
+        else {
+            
+        }
+
+        return value;
+    },
 
     PerlinTexture2D: function (
         {   
@@ -106,12 +147,12 @@ const Noise = {
             octaves = 4, 
             startingOctave = 4,
             lacunarity = 2,
-            peristance = 0.5,
+            persistance = 2,
             fade = Interpolation.SmoothStep,
             octaveMix = (value, octaveIteration, x, y) => {
-                return value / 2**(octaveIteration);
+                return value / persistance**(octaveIteration);
             }
-        } : {seed: number, posZ: number, resolution: number, octaves: number, startingOctave: number, lacunarity: number, peristance: number, fade, octaveMix}
+        } : {seed: number, posZ: number, resolution: number, octaves: number, startingOctave: number, lacunarity: number, persistance: number, fade, octaveMix}
         )
     {
         //TODO: fix this mess...
@@ -130,19 +171,19 @@ const Noise = {
         
         let valueArr: number[] = new Array(resolution*resolution);
         
-        for (let octIter = startingOctave-1; octIter < octaves+startingOctave; octIter++) {
+        for (let octIter = startingOctave; octIter < octaves+startingOctave; octIter++) {
             
             for (let i = 0; i<(resolution*resolution); i++) {
-                let x = i % Number(resolution);
+                let x = i % resolution;
                 let y = Math.floor(i/resolution);
         
-                let value = this.perlinNoise3d({seed: seed, freq: lacunarity**octIter, x: x/resolution, y: y/resolution, customGradients: precomputedGradients, fade: fade});
+                let value = this.PerlinNoise3d({seed: seed, freq: lacunarity**(octIter-1), x: x/resolution, y: y/resolution, customGradients: precomputedGradients, fade: fade});
 
                 if (octIter == startingOctave) {
                     valueArr[i] = 0;
                 } 
 
-                valueArr[i] += octaveMix(value, octIter, x, y); 
+                valueArr[i] += octaveMix(value, octIter - startingOctave, x, y); 
 
             }
 
@@ -150,6 +191,67 @@ const Noise = {
         
        
         return valueArr;
+    },
+
+    WorleyTexture2D: function (
+        {   
+            seed = 0, 
+            posZ = 0, 
+            resolution = 256, 
+            octaves = 4, 
+            startingOctave = 4,
+            lacunarity = 2,
+            persistance = 2,
+            fade = Interpolation.SmoothStep,
+            octaveMix = (value, octaveIteration, x, y) => {
+                return value / persistance**(octaveIteration);
+            }
+        } : {seed: number, posZ: number, resolution: number, octaves: number, startingOctave: number, lacunarity: number, persistance: number, fade, octaveMix}
+    ) {
+        let amountOfCells = Math.min(lacunarity ** (octaves+startingOctave), resolution); 
+        let precomputedCells = new Array(Math.ceil(amountOfCells)**2 * 3);
+    
+        let i: number = 0, len = precomputedCells.length;
+        while (i < len) {
+
+            let x = i % resolution;
+            let y = Math.floor((i%(resolution**2))/(resolution));
+            let z = Math.floor(i/(resolution**2));
+
+            //bad random sample
+            let rand1 =  this.Noise3D(x,y,z,seed)/this.MAX_NOISE_VAL;
+            let rand2 =  this.Noise3D(y,z,x,seed)/this.MAX_NOISE_VAL;
+            let rand3 =  this.Noise3D(z,x,y,seed)/this.MAX_NOISE_VAL;
+
+            precomputedCells[i] = [rand1,rand2,rand3];
+            i++;
+        }
+    
+        
+        
+        let valueArr: number[] = new Array(resolution*resolution);
+        
+
+        for (let octIter = startingOctave; octIter < octaves+startingOctave; octIter++) {
+            
+            for (let i = 0; i<(resolution*resolution); i++) {
+                let x = i % Number(resolution);
+                let y = Math.floor(i/resolution);
+        
+                let value = this.FastWorleyNoise3D({seed: seed, freq: lacunarity**(octIter-1), x: x/resolution, y: y/resolution, z: posZ/resolution, customCellLocations: precomputedCells, fade: fade});
+
+                if (octIter == startingOctave) {
+                    valueArr[i] = 0;
+                } 
+                valueArr[i] += octaveMix(fade(0,1,value), octIter - startingOctave, x, y); 
+
+            }
+
+        }
+        
+       
+        return valueArr;
+
     }
 
 } as const;

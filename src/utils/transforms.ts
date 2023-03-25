@@ -23,16 +23,25 @@ const NormalizeToRanges = (arr: any[], min: number = 0, max: number = 1) => {
     return arr.map(x => Interpolation.Lerp(min,max, (x-minNum)/(maxNum-minNum)));
 }
 
+const TestFunc = (arr: any[]) => {
+
+    return arr.map((element, index, array) => {
+        //for (x)
+
+    });
+
+}; 
+
 const EvaluateColorGradient = (value: number, gradients: {x: number, color: number[]}[], fade = Interpolation.SmoothStep) => {
     //If gradients are not sorted, sort them
     gradients.sort((a,b) => a.x - b.x);
 
-    let returnedColor = [0,0,0];
+    let returnedColor = gradients[0].color;
 
     for (let index = 0; index < gradients.length; index ++) {
         let point = gradients[index];
         
-        if (value < point.x) {
+        if (value <= point.x) {
             let lastPoint = gradients[ Clamp (index - 1 , 0, gradients.length - 1)];
 
             let alpha = (value - lastPoint.x)/ (point.x - lastPoint.x);

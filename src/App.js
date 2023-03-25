@@ -12,16 +12,21 @@ const paintCanvas = (canvasRef, imgSize) => {
   console.log("Before Noise", performance.now());
   const canvasContext = canvasRef.getContext("2d");
 
-  /*let valueArray = NormalizeToRanges(Noise.PerlinTexture2D({seed: 16 , 
-                                          posZ: 0, 
-                                          resolution: imgSize, 
-                                          startingOctave: 1, 
-                                          octaves: 1, 
-                                          fade: Interpolation.SmoothStep,
-                                          octaveMix: (value, octaveIteration, x, y) => {return Math.abs(value / 1.4**(octaveIteration));}
-                                          //octaveMix: (value, octaveIteration, x, y) => {return Clamp(value / 1.7**(octaveIteration), -1, 1);}
-                                        }), 0 , 1).map(x=>Interpolation.Circle(0,1,x));
-  */                              
+  /*let valueArray = Noise.WorleyTexture2D({seed: 16 , 
+                posZ: 0, 
+                resolution: imgSize, 
+                startingOctave: 1, 
+                octaves: 10, 
+                fade: Interpolation.Lerp,
+                lacunarity: 3,
+                octaveMix: (value, octaveIteration, x, y) => {
+                  return (value - (0.5 * Clamp(octaveIteration, 0 , 1))   ) / 2**(octaveIteration);
+                }
+                //octaveMix: (value, octaveIteration, x, y) => {return Clamp(value / 1.7**(octaveIteration), -1, 1);}
+              }).map((x,i) => {
+                return (1-Math.cos(  16*2*Math.PI * ((i%imgSize)/imgSize  + 0.6*x)))/(1-x);  
+              });
+  */         
 
   let valueArray = Noise.PerlinTexture2D({seed: 16, 
                                           posZ: 0, 
@@ -31,7 +36,24 @@ const paintCanvas = (canvasRef, imgSize) => {
                                           fade: Interpolation.SmoothStep,
                                           octaveMix: (value, octaveIteration, x, y) => {return value / 2**(octaveIteration);}
                                           //octaveMix: (value, octaveIteration, x, y) => {return Clamp(value / 1.7**(octaveIteration), -1, 1);}
+                                        }).map((x,i) => {
+                                          return (1-Math.cos(  16*2*Math.PI * ((i%imgSize)/imgSize  + 0.6*x)))/(1-x);  
                                         });
+
+  /*let valueArray = Noise.WorleyTexture2D({seed: 16 , 
+                                          posZ: 0, 
+                                          resolution: imgSize, 
+                                          startingOctave: 1, 
+                                          octaves: 10, 
+                                          fade: Interpolation.Lerp,
+                                          lacunarity: 3,
+                                          octaveMix: (value, octaveIteration, x, y) => {
+                                            return (value - (0.5 * Clamp(octaveIteration, 0 , 1))   ) / 2**(octaveIteration);
+                                          }
+                                          //octaveMix: (value, octaveIteration, x, y) => {return Clamp(value / 1.7**(octaveIteration), -1, 1);}
+  }).map((x,i) => {
+    return (1-Math.cos(  16*2*Math.PI * ((i%imgSize)/imgSize  + 0.6*x)))/(1-x);  
+  });*/
                                         
   const arr = new Uint8ClampedArray(imgSize*imgSize*4);
 
@@ -39,7 +61,7 @@ const paintCanvas = (canvasRef, imgSize) => {
 
   valueArray.map((value,index)=>{
 
-    /*let color = EvaluateColorGradient(value, [
+    let color = EvaluateColorGradient(Clamp( value, 0 , 1), [
       {x: 0.0, color: [0,63,178]},
       {x: 0.3, color: [10,80,195]},
       {x: 0.4, color: [192,183,134]},
@@ -54,12 +76,12 @@ const paintCanvas = (canvasRef, imgSize) => {
 
     ],
     Interpolation.Lerp
-    );*/
+    );
 
     let newVal = Math.round(value * 255);
-    arr[(index*4)] = newVal;
-    arr[(index*4)+1] = newVal;
-    arr[(index*4)+2] = newVal;
+    arr[(index*4)] =  newVal; //  newVal; //color[0];
+    arr[(index*4)+1] = newVal; // newVal; //color[1];
+    arr[(index*4)+2] = newVal; // newVal; //color[2];
     arr[(index*4)+3] = 255;
 
   });

@@ -27,6 +27,8 @@ https://www.mdpi.com/1424-8220/20/4/1135
 
 https://www.hyena.net.ee/rwg/Perlin%20Noise%20Generator.pdf
 
+voronoi 
+https://thebookofshaders.com/12/
 Late to the party, but it is proven, that a function like below is never periodic.
 
     sin (2 * x) + sin(pi * x)
