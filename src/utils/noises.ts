@@ -1,10 +1,12 @@
 import { Z_ASCII } from "zlib";
-import { Dot2D, Interpolation, MagnitudeSquared3D } from "./mathUtils";
+import { Clamp, Dot2D, Interpolation, MagnitudeSquared3D } from "./mathUtils";
 
 //TODO: random library with hash algorithm
 
 
 const Noise = {
+
+    
 
     /*
     Credit to Squirrel Eiserloh with this video at GDC:
@@ -57,12 +59,25 @@ const Noise = {
         let q00,q10,q01,q11;
 
         //If it already has precomputed the gradients dont compute them again
-        if (customGradients != null) {
+        /*if (customGradients != null) {
             let gradientSize = customGradients.length - 1;
             q00 = customGradients[(quadrantX+(quadrantY*freq)) % gradientSize];
             q10 = customGradients[((   (quadrantX+1)%freq    )+(quadrantY*freq)) % gradientSize];
             q01 = customGradients[(quadrantX+((  (quadrantY+1)%freq  )*freq)) % gradientSize];
             q11 = customGradients[((    (quadrantX+1)%freq    )+((   (quadrantY+1)%freq     )*freq)) % gradientSize];
+        }*/
+        if (customGradients != null) {
+            let rand1 = this.Noise2D(quadrantX, quadrantY*freq, seed);
+            q00 = customGradients[rand1%customGradients.length]
+            
+            let rand2 = this.Noise2D((quadrantX+1)%freq, quadrantY*freq, seed);
+            q10 = customGradients[rand2%customGradients.length]
+            
+            let rand3 = this.Noise2D(quadrantX, ((quadrantY+1)%freq)*freq, seed);
+            q01 = customGradients[rand3%customGradients.length]
+            
+            let rand4 = this.Noise2D((quadrantX+1)%freq,((quadrantY+1)%freq)*freq,seed);
+            q11 = customGradients[rand4%customGradients.length]
         }
         else {
             let rand1 = (this.Noise2D(quadrantX, quadrantY*freq, seed)/ this.MAX_NOISE_VAL) * 2 * Math.PI;
@@ -158,12 +173,21 @@ const Noise = {
         //TODO: fix this mess...
 
         let amountOfCells = Math.min(lacunarity ** (octaves+startingOctave), resolution); 
-        let precomputedGradients = new Array(Math.ceil(amountOfCells)**2);
+        //let precomputedGradients = new Array(Math.ceil(amountOfCells)**2);
     
-        let i: number = 0, len = precomputedGradients.length;
-        while (i < len) {
+        //let i: number = 0, len = precomputedGradients.length;
+        /*while (i < len) {
             let rand1 =  (this.Noise1D(i,seed)/this.MAX_NOISE_VAL) * 2 * Math.PI;
             precomputedGradients[i] = [Math.cos(rand1),Math.sin(rand1)];
+            i++;
+        }*/
+        let arraySize = 512*512;
+        let precomputedGradients = new Array(arraySize);
+        
+        let i: number = 0, len = precomputedGradients.length;
+        while (i < len) {
+            let n =  i/arraySize * 2 * Math.PI;
+            precomputedGradients[i] = [Math.cos(n),Math.sin(n)];
             i++;
         }
     
