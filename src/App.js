@@ -1,14 +1,17 @@
 import logo from './logo.svg';
 import { useRef, useEffect} from 'react';
 import './App.css';
-import { Noise } from './utils/noises';
+import loadNoise from './utils/noises';
 import { Clamp, Interpolation } from './utils/mathUtils';
 import { EvaluateColorGradient, NormalizeToRanges} from './utils/transforms';
 import CustomCanvas from './components/canvas';
 
 
 
-const paintCanvas = (canvasRef, imgSize) => {
+const paintCanvas = async (canvasRef, imgSize) => {
+
+  let Noise = await loadNoise;
+
   console.log("Before Noise", performance.now());
   const canvasContext = canvasRef.getContext("2d");
 

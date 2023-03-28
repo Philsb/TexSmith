@@ -1,5 +1,7 @@
 const path = require("path");
 const HtmlWebpackPlugin = require("html-webpack-plugin");
+const CopyPlugin = require("copy-webpack-plugin");
+const WasmPackPlugin = require("@wasm-tool/wasm-pack-plugin");
 
 module.exports = {
   entry: "./src/index.js",
@@ -11,9 +13,14 @@ module.exports = {
     new HtmlWebpackPlugin({
       template: path.join(__dirname, "public", "index.html"),
     }),
+    new WasmPackPlugin({
+      crateDirectory: path.resolve(__dirname, "assembly-libs"),
+      outDir: path.resolve(__dirname, "build/assembly-libs"),
+      forceMode: `production`,
+      extraArgs: " --target web"
+    })
   ],
-  // ...,
-module: {
+  module: {
     // exclude node_modules
     rules: [
       {
@@ -42,9 +49,8 @@ module: {
     extensions: ["*", ".js", ".jsx", ".ts", ".tsx"],
   },
   devServer: {
-    static: {
-      directory: path.join(__dirname, "build"),
-    },
-    port: 3000,
-  }
+    static: path.resolve(__dirname, "build"),
+    open: false,
+    port:3000,
+  },
 };

@@ -13,6 +13,10 @@ canvas.width = imageSize;
 canvas.height = imageSize;
 paintCanvas(canvas, imageSize);
 
+
+
+
+
 /*const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
   <React.StrictMode>

@@ -1,0 +1,8 @@
+target/
+**/*.rs.bk
+tests/.crates.toml
+tests/bin
+/build-installer
+docs/book
+docs/installer
+pkg/
