@@ -25,6 +25,10 @@ const InterpolationColor = {
     }
 }
 
+function IsPowerOf2(value) {
+    return (value & (value - 1)) == 0;
+}
+
 const Clamp = (number, min, max) => {
     return Math.min(Math.max(number, min), max);
 };
@@ -49,6 +53,6 @@ const MagnitudeSquared3D = (vec) => {
     return vec[0]*vec[0] + vec[1]*vec[1] + vec[2]*vec[2];
 };
 
-export {Interpolation, Clamp, Dot2D, Magnitude2D, Magnitude3D, MagnitudeSquared2D, MagnitudeSquared3D};
+export {Interpolation, Clamp, Dot2D, Magnitude2D, Magnitude3D, MagnitudeSquared2D, MagnitudeSquared3D, IsPowerOf2};
 
 

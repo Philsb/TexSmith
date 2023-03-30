@@ -246,8 +246,6 @@ const Noise = {
             i++;
         }
     
-        
-        
         let valueArr: number[] = new Array(resolution*resolution);
         
 

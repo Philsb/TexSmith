@@ -1,64 +1,121 @@
-class GpuImageGenerator {
+import { GenerateShader, ShaderSource } from "../renderer/shader";
+import { IsPowerOf2 } from "./mathUtils";
+
+abstract class GpuImageGenerator {
     renderer: OffscreenCanvas;
-    glcontext: OffscreenRenderingContext; 
+    glcontext; 
+	texture; 
+	shader: ShaderSource;
 
-    /*constructor() {
+    constructor(shader: ShaderSource) {
         this.renderer = new OffscreenCanvas(256, 256);
-        this.glcontext = this.renderer.getContext("webgl");
+        this.glcontext = this.renderer.getContext("webgl2");
 
-        var triangleVertexBufferObject = gl.createBuffer();
-		gl.bindBuffer(gl.ARRAY_BUFFER, triangleVertexBufferObject);
-		gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(verticesInfo), gl.STATIC_DRAW);
+		this.texture = this.glcontext.createTexture();
+		this.glcontext.bindTexture(this.glcontext.TEXTURE_2D, this.texture);
 
-        var positionAttribLocation = gl.getAttribLocation(shaderProgram, 'vertPosition');
+		this.shader = shader;
+		//Set shader
+		let program = this.initShaderProgram();
+        this.glcontext.useProgram(program);
+    }
 
-        gl.vertexAttribPointer(
+	abstract #InitUniforms(): void;
+
+	generateImage(coordinatesSample: Int32Array,width: number, height: number) {
+
+		const level = 0;
+		const internalFormat = this.glcontext.RGB;
+		const border = 0;
+		const srcFormat = this.glcontext.RGB;
+		const srcType = this.glcontext.INT;
+
+		this.glcontext.texImage2D(this.glcontext.TEXTURE_2D, level, internalFormat,
+						width, height, border, srcFormat, srcType,
+						coordinatesSample);
+
+		// I dont think this is necesary
+		if (IsPowerOf2(width) && IsPowerOf2(height)) {
+			// Yes, it's a power of 2. Generate mips.
+			this.glcontext.generateMipmap(this.glcontext.TEXTURE_2D);
+		} else {
+			// No, it's not a power of 2. Turn off mips and set
+			// wrapping to clamp to edge
+			this.glcontext.texParameteri(this.glcontext.TEXTURE_2D, this.glcontext.TEXTURE_WRAP_S, this.glcontext.CLAMP_TO_EDGE);
+			this.glcontext.texParameteri(this.glcontext.TEXTURE_2D, this.glcontext.TEXTURE_WRAP_T, this.glcontext.CLAMP_TO_EDGE);
+			this.glcontext.texParameteri(this.glcontext.TEXTURE_2D, this.glcontext.TEXTURE_MIN_FILTER, this.glcontext.LINEAR);
+		}
+
+		let QuadVertices = 
+		[ // X, Y, 
+			1.0, 1.0,   
+			-1.0, -1.0,  
+			-1.0, 1.0,  
+			-1.0, 1.0,
+			-1.0, -1.0,
+			1.0, -1.0,   
+		];
+
+		let QuadVBO = this.glcontext.createBuffer();
+		this.glcontext.bindBuffer(this.glcontext.ARRAY_BUFFER, QuadVBO);
+		this.glcontext.bufferData(this.glcontext.ARRAY_BUFFER, new Float32Array(QuadVertices), this.glcontext.STATIC_DRAW);
+
+		let positionAttribLocation = this.glcontext.getAttribLocation(program, 'vertPosition');
+
+		this.glcontext.vertexAttribPointer(
 			positionAttribLocation, // Attribute location
-			3, // Number of elements per attribute
-			gl.FLOAT, // Type of elements
-			gl.FALSE,
-			6 * Float32Array.BYTES_PER_ELEMENT, // Size of an individual vertex
+			2, // Number of elements per attribute
+			this.glcontext.FLOAT, // Type of elements
+			this.glcontext.FALSE,
+			2 * Float32Array.BYTES_PER_ELEMENT, // Size of an individual vertex
 			0 // Offset from the beginning of a single vertex to this attribute
 		);
+		this.glcontext.enableVertexAttribArray(positionAttribLocation);
 
-        gl.enableVertexAttribArray(positionAttribLocation);
-    }*/
-    /*
-    initShaderProgram(gl) {
+
+		this.InitUniforms();
+
+		gl.clearColor(0.0, 0.0, 0.0, 0.0);    
+		gl.clear(gl.DEPTH_BUFFER_BIT | gl.COLOR_BUFFER_BIT);
+		this.glcontext.drawArrays(this.glcontext.TRIANGLES, 0, 6);
+
+	}
+    
+    #initShaderProgram() {
 		//
 		// Create shaders
-		// 
-		var vertexShaderText = loadTextResource ('./src/Shaders/vertex.shader');
-		var fragmentShaderText = loadTextResource ('./src/Shaders/fragment.shader');
-		var vertexShader = gl.createShader(gl.VERTEX_SHADER);
-		var fragmentShader = gl.createShader(gl.FRAGMENT_SHADER);
+		//
+		let shaderText = GenerateShader(this.shader)
 
-		gl.shaderSource(vertexShader, vertexShaderText);
-		gl.shaderSource(fragmentShader, fragmentShaderText);
+		let vertexShader = this.glcontext.createShader(this.glcontext.VERTEX_SHADER);
+		let fragmentShader = this.glcontext.createShader(this.glcontext.FRAGMENT_SHADER);
 
-		gl.compileShader(vertexShader);
-		if (!gl.getShaderParameter(vertexShader, gl.COMPILE_STATUS)) {
-			console.error('ERROR compiling vertex shader!', gl.getShaderInfoLog(vertexShader));
+		this.glcontext.shaderSource(vertexShader, shaderText.vertex);
+		this.glcontext.shaderSource(fragmentShader, shaderText.fragment);
+
+		this.glcontext.compileShader(vertexShader);
+		if (!this.glcontext.getShaderParameter(vertexShader, this.glcontext.COMPILE_STATUS)) {
+			console.error('ERROR compiling vertex shader!', this.glcontext.getShaderInfoLog(vertexShader));
 			return;
 		}
 
-		gl.compileShader(fragmentShader);
-		if (!gl.getShaderParameter(fragmentShader, gl.COMPILE_STATUS)) {
-			console.error('ERROR compiling fragment shader!', gl.getShaderInfoLog(fragmentShader));
+		this.glcontext.compileShader(fragmentShader);
+		if (!this.glcontext.getShaderParameter(fragmentShader, this.glcontext.COMPILE_STATUS)) {
+			console.error('ERROR compiling fragment shader!', this.glcontext.getShaderInfoLog(fragmentShader));
 			return;
 		}
 
-		var program = gl.createProgram();
-		gl.attachShader(program, vertexShader);
-		gl.attachShader(program, fragmentShader);
-		gl.linkProgram(program);
-		if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
-			console.error('ERROR linking program!', gl.getProgramInfoLog(program));
+		let program = this.glcontext.createProgram();
+		this.glcontext.attachShader(program, vertexShader);
+		this.glcontext.attachShader(program, fragmentShader);
+		this.glcontext.linkProgram(program);
+		if (!this.glcontext.getProgramParameter(program, this.glcontext.LINK_STATUS)) {
+			console.error('ERROR linking program!', this.glcontext.getProgramInfoLog(program));
 			return;
 		}
-		gl.validateProgram(program);
-		if (!gl.getProgramParameter(program, gl.VALIDATE_STATUS)) {
-			console.error('ERROR validating program!', gl.getProgramInfoLog(program));
+		this.glcontext.validateProgram(program);
+		if (!this.glcontext.getProgramParameter(program, this.glcontext.VALIDATE_STATUS)) {
+			console.error('ERROR validating program!', this.glcontext.getProgramInfoLog(program));
 			return;
 		}
 
@@ -67,17 +124,57 @@ class GpuImageGenerator {
 
     resize(canvas) {
 		// Lookup the size the browser is displaying the canvas.
-		var displayWidth  = canvas.clientWidth;
-		var displayHeight = canvas.clientHeight;
+		let displayWidth  = canvas.clientWidth;
+		let displayHeight = canvas.clientHeight;
 	
 		// Check if the canvas is not the same size.
 		if (canvas.width  != displayWidth ||
 			canvas.height != displayHeight) {
 	
-		// Make the canvas the same size
-		canvas.width  = displayWidth;
-		canvas.height = displayHeight;
+			// Make the canvas the same size
+			canvas.width  = displayWidth;
+			canvas.height = displayHeight;
 		}
-	}*/
+	}
+
+}
+
+class PerlinImageGenerator extends GpuImageGenerator {
+	constructor () {
+		
+		let perlinShader = {
+			functions: {
+NoisesRNG: 	
+,
+fade: 
+`
+float fade() {
+	SmoothStep: (a,b,alpha) => {
+        //SmoothStep Interpolation
+        return (b - a) * ((alpha * (alpha * 6.0 - 15.0) + 10.0) * alpha * alpha * alpha) + a;
+    }
+}
+`
+
+
+},
+			vertex: `
+				asd;
+			
+			`,
+			fragment: `
+			
+			
+			
+			`
+		}
+		super(perlinShader);
+		seed: number, posZ: number, resolution: number, octaves: number, startingOctave: number, lacunarity: number, persistance: number, fade, octaveMix
+		
+	}
+	#InitUniforms() {
+		
+	}
+
 
 }
