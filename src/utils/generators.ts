@@ -1,66 +1,53 @@
-import { GenerateShader, ShaderSource } from "../renderer/shader";
+import { GenerateFunction, GenerateShader, GlslFunction, ShaderSource } from "../renderer/shader";
+import PerlinShaderSource from "../renderer/shaders/perlinShader.glsl";
+import WorleyShaderSource from "../renderer/shaders/worleyShader.glsl";
 import { IsPowerOf2 } from "./mathUtils";
 
 abstract class GpuImageGenerator {
-    renderer: OffscreenCanvas;
+    renderer: any;
     glcontext; 
-	texture; 
 	shader: ShaderSource;
+	program;
+	size: number;
+	uniformsMap: Map<string, any>;
 
-    constructor(shader: ShaderSource) {
-        this.renderer = new OffscreenCanvas(256, 256);
-        this.glcontext = this.renderer.getContext("webgl2");
+    constructor(size: number, shader: ShaderSource, renderTarget = null) {
+		if (renderTarget != null) {
+			this.renderer = renderTarget;
+		}
+		else {
+			this.renderer = new OffscreenCanvas(size,size);
+		}
+        this.glcontext = this.renderer.getContext("webgl2", {preserveDrawingBuffer: true});
+		this.glcontext.getExtension("OES_texture_float");
+		this.glcontext.getExtension("OES_texture_float_linear");
 
-		this.texture = this.glcontext.createTexture();
-		this.glcontext.bindTexture(this.glcontext.TEXTURE_2D, this.texture);
+		this.size = size;
+		this.uniformsMap = new Map<string, any>();
 
 		this.shader = shader;
 		//Set shader
-		let program = this.initShaderProgram();
-        this.glcontext.useProgram(program);
-    }
+		this.program = this.createShaderProgram(this.shader);
+        this.glcontext.useProgram(this.program);
 
-	abstract #InitUniforms(): void;
-
-	generateImage(coordinatesSample: Int32Array,width: number, height: number) {
-
-		const level = 0;
-		const internalFormat = this.glcontext.RGB;
-		const border = 0;
-		const srcFormat = this.glcontext.RGB;
-		const srcType = this.glcontext.INT;
-
-		this.glcontext.texImage2D(this.glcontext.TEXTURE_2D, level, internalFormat,
-						width, height, border, srcFormat, srcType,
-						coordinatesSample);
-
-		// I dont think this is necesary
-		if (IsPowerOf2(width) && IsPowerOf2(height)) {
-			// Yes, it's a power of 2. Generate mips.
-			this.glcontext.generateMipmap(this.glcontext.TEXTURE_2D);
-		} else {
-			// No, it's not a power of 2. Turn off mips and set
-			// wrapping to clamp to edge
-			this.glcontext.texParameteri(this.glcontext.TEXTURE_2D, this.glcontext.TEXTURE_WRAP_S, this.glcontext.CLAMP_TO_EDGE);
-			this.glcontext.texParameteri(this.glcontext.TEXTURE_2D, this.glcontext.TEXTURE_WRAP_T, this.glcontext.CLAMP_TO_EDGE);
-			this.glcontext.texParameteri(this.glcontext.TEXTURE_2D, this.glcontext.TEXTURE_MIN_FILTER, this.glcontext.LINEAR);
-		}
-
+		//Set uniforms
+		this.initUniforms();
+		
 		let QuadVertices = 
 		[ // X, Y, 
 			1.0, 1.0,   
 			-1.0, -1.0,  
-			-1.0, 1.0,  
 			-1.0, 1.0,
-			-1.0, -1.0,
-			1.0, -1.0,   
+			1.0, 1.0,  
+			1.0, -1.0,
+			-1.0, -1.0,  
 		];
 
 		let QuadVBO = this.glcontext.createBuffer();
 		this.glcontext.bindBuffer(this.glcontext.ARRAY_BUFFER, QuadVBO);
 		this.glcontext.bufferData(this.glcontext.ARRAY_BUFFER, new Float32Array(QuadVertices), this.glcontext.STATIC_DRAW);
 
-		let positionAttribLocation = this.glcontext.getAttribLocation(program, 'vertPosition');
+		let positionAttribLocation = this.glcontext.getAttribLocation(this.program, 'vertPosition');
 
 		this.glcontext.vertexAttribPointer(
 			positionAttribLocation, // Attribute location
@@ -72,20 +59,36 @@ abstract class GpuImageGenerator {
 		);
 		this.glcontext.enableVertexAttribArray(positionAttribLocation);
 
+    }
 
-		this.InitUniforms();
+	abstract initUniforms(): void;
+	abstract updateUniforms(params): void;
+	
+	generateImage(params) {
+		
+		//this.resize(size);
+		this.updateUniforms(params);
 
-		gl.clearColor(0.0, 0.0, 0.0, 0.0);    
-		gl.clear(gl.DEPTH_BUFFER_BIT | gl.COLOR_BUFFER_BIT);
+		this.glcontext.clearColor(0.0, 0.0, 0.0, 0.0);    
+		this.glcontext.clear(this.glcontext.DEPTH_BUFFER_BIT | this.glcontext.COLOR_BUFFER_BIT);
 		this.glcontext.drawArrays(this.glcontext.TRIANGLES, 0, 6);
 
+		/*let rawPixels = new Uint8Array(this.size*this.size*4);
+		this.glcontext.readPixels(0, 0, this.size, this.size, this.glcontext.RGBA, this.glcontext.UNSIGNED_BYTE, rawPixels);
+		
+		let returnedPixels = new Float32Array(this.size*this.size);
+		for(let i = 0; i < rawPixels.length; i += 4) {
+			returnedPixels[i/4] = rawPixels[i]/255;
+		}
+		return returnedPixels;*/
+
+		return null;
 	}
     
-    #initShaderProgram() {
-		//
+    createShaderProgram(inputShader: ShaderSource): WebGLProgram {
 		// Create shaders
-		//
-		let shaderText = GenerateShader(this.shader)
+		let shaderText = GenerateShader(inputShader)
+		//console.log(shaderText.fragment);
 
 		let vertexShader = this.glcontext.createShader(this.glcontext.VERTEX_SHADER);
 		let fragmentShader = this.glcontext.createShader(this.glcontext.FRAGMENT_SHADER);
@@ -105,7 +108,7 @@ abstract class GpuImageGenerator {
 			return;
 		}
 
-		let program = this.glcontext.createProgram();
+		let program: WebGLProgram = this.glcontext.createProgram();
 		this.glcontext.attachShader(program, vertexShader);
 		this.glcontext.attachShader(program, fragmentShader);
 		this.glcontext.linkProgram(program);
@@ -121,60 +124,208 @@ abstract class GpuImageGenerator {
 
 		return program;
 	}
+	//TODO: doesnt work with offscreencanvas
+    resize(size: number) {
+		this.renderer.width = size;
+		this.renderer.height = size;
+	}
 
-    resize(canvas) {
-		// Lookup the size the browser is displaying the canvas.
-		let displayWidth  = canvas.clientWidth;
-		let displayHeight = canvas.clientHeight;
-	
-		// Check if the canvas is not the same size.
-		if (canvas.width  != displayWidth ||
-			canvas.height != displayHeight) {
-	
-			// Make the canvas the same size
-			canvas.width  = displayWidth;
-			canvas.height = displayHeight;
+}
+
+abstract class IterativeImageGeneration extends GpuImageGenerator {
+	displayToTargetProgran;
+
+	constructor(size: number, shader: ShaderSource, renderTarget = null) {
+		super(size, shader, renderTarget);
+
+		const renderToTargetShader = <ShaderSource> {
+
+		};
+
+		//Set shader
+		this.displayToTargetProgran = this.createShaderProgram(renderToTargetShader);
+	}
+
+	generateImage(params) {
+		
+		//this.resize(size);
+		this.updateUniforms(params);
+
+		let tex0 = this.glcontext.createTexture();
+		this.glcontext.activeTexture(this.glcontext.TEXTURE0);
+		this.glcontext.bindTexture(this.glcontext.TEXTURE_2D, tex0);
+		this.glcontext.texImage2D(this.glcontext.TEXTURE_2D, 0, this.glcontext.RGB,
+			this.size, this.size, 0, this.glcontext.UNSIGNED_SHORT_5_6_5,
+						params.inputImage);
+
+		this.glcontext.texParameteri(this.glcontext.TEXTURE_2D, this.glcontext.TEXTURE_MAG_FILTER, this.glcontext.NEAREST);
+		this.glcontext.texParameteri(this.glcontext.TEXTURE_2D, this.glcontext.TEXTURE_MIN_FILTER, this.glcontext.NEAREST);
+		this.glcontext.texParameteri(this.glcontext.TEXTURE_2D, this.glcontext.TEXTURE_WRAP_S, this.glcontext.CLAMP_TO_EDGE);
+		this.glcontext.texParameteri(this.glcontext.TEXTURE_2D, this.glcontext.TEXTURE_WRAP_T, this.glcontext.CLAMP_TO_EDGE);
+
+
+		let tex1 = this.glcontext.createTexture();
+		this.glcontext.activeTexture(this.glcontext.TEXTURE1);
+		this.glcontext.bindTexture(this.glcontext.TEXTURE_2D, tex1);
+		this.glcontext.texImage2D(this.glcontext.TEXTURE_2D, 0, this.glcontext.RGB,
+			this.size, this.size, 0, this.glcontext.UNSIGNED_SHORT_5_6_5,
+						null);
+
+		this.glcontext.texParameteri(this.glcontext.TEXTURE_2D, this.glcontext.TEXTURE_MAG_FILTER, this.glcontext.NEAREST);
+		this.glcontext.texParameteri(this.glcontext.TEXTURE_2D, this.glcontext.TEXTURE_MIN_FILTER, this.glcontext.NEAREST);
+		this.glcontext.texParameteri(this.glcontext.TEXTURE_2D, this.glcontext.TEXTURE_WRAP_S, this.glcontext.CLAMP_TO_EDGE);
+		this.glcontext.texParameteri(this.glcontext.TEXTURE_2D, this.glcontext.TEXTURE_WRAP_T, this.glcontext.CLAMP_TO_EDGE);
+
+
+
+
+
+
+
+		let FBOs = [this.glcontext.createFrameBuffer(), this.glcontext.createFrameBuffer()];
+		this.glcontext.bindFramebuffer(this.glcontext.FRAMEBUFFER, FBOs[0]);	
+		this.glcontext.framebufferTexture2D(this.glcontext.FRAMEBUFFER,
+			this.glcontext.COLOR_ATTACHMENT0,
+			this.glcontext.TEXTURE_2D,
+			tex0,
+			0);	
+
+		this.glcontext.bindFramebuffer(this.glcontext.FRAMEBUFFER, FBOs[1]);	
+		this.glcontext.framebufferTexture2D(this.glcontext.FRAMEBUFFER,
+			this.glcontext.COLOR_ATTACHMENT0,
+			this.glcontext.TEXTURE_2D,
+			tex1,
+			0);	
+
+		
+
+
+		let loop = function () {
+			this.glcontext.clearColor(0.0, 0.0, 0.0, 0.0);    
+			this.glcontext.clear(this.glcontext.DEPTH_BUFFER_BIT | this.glcontext.COLOR_BUFFER_BIT);
+			this.glcontext.drawArrays(this.glcontext.TRIANGLES, 0, 6);
 		}
-	}
-
-}
-
-class PerlinImageGenerator extends GpuImageGenerator {
-	constructor () {
 		
-		let perlinShader = {
-			functions: {
-NoisesRNG: 	
-,
-fade: 
-`
-float fade() {
-	SmoothStep: (a,b,alpha) => {
-        //SmoothStep Interpolation
-        return (b - a) * ((alpha * (alpha * 6.0 - 15.0) + 10.0) * alpha * alpha * alpha) + a;
-    }
-}
-`
 
-
-},
-			vertex: `
-				asd;
-			
-			`,
-			fragment: `
-			
-			
-			
-			`
+		/*let rawPixels = new Uint8Array(this.size*this.size*4);
+		this.glcontext.readPixels(0, 0, this.size, this.size, this.glcontext.RGBA, this.glcontext.UNSIGNED_BYTE, rawPixels);
+		
+		let returnedPixels = new Float32Array(this.size*this.size);
+		for(let i = 0; i < rawPixels.length; i += 4) {
+			returnedPixels[i/4] = rawPixels[i]/255;
 		}
-		super(perlinShader);
-		seed: number, posZ: number, resolution: number, octaves: number, startingOctave: number, lacunarity: number, persistance: number, fade, octaveMix
-		
+		return returnedPixels;*/
+
+		return null;
 	}
-	#InitUniforms() {
-		
+}
+
+class PerlinGenerator extends GpuImageGenerator {
+	constructor (size: number, renderTarget = null) {
+		super(size, PerlinShaderSource, renderTarget);
 	}
 
+	initUniforms() {
+		this.uniformsMap["seed"]  = this.glcontext.getUniformLocation(this.program, "seed");
+		this.uniformsMap["octaves"] = this.glcontext.getUniformLocation(this.program, "octaves");
+		this.uniformsMap["startingOctave"] = this.glcontext.getUniformLocation(this.program, "startingOctave");
+		this.uniformsMap["lacunarity"] = this.glcontext.getUniformLocation(this.program, "lacunarity");
+		this.uniformsMap["resolution"] = this.glcontext.getUniformLocation(this.program, "resolution");
+		this.uniformsMap["persistance"] = this.glcontext.getUniformLocation(this.program, "persistance");
+		this.uniformsMap["sampleCoords"] = this.glcontext.getUniformLocation(this.program, "sampleCoords");
+		this.uniformsMap["posZ"] = this.glcontext.getUniformLocation(this.program, "posZ");
+	}
+
+	updateUniforms(params): void {
+		/*const level = 0;
+		const internalFormat = this.glcontext.RGB;
+		const border = 0;
+		const srcFormat = this.glcontext.RGB;
+		const srcType = this.glcontext.UNSIGNED_SHORT_5_6_5;
+
+		this.glcontext.texImage2D(this.glcontext.TEXTURE_2D, level, internalFormat,
+			size, size, border, srcFormat, srcType,
+						params.coordinatesSample);
+
+		// I dont think this is necesary
+		if (IsPowerOf2(size) && IsPowerOf2(size)) {
+			// Yes, it's a power of 2. Generate mips.
+			this.glcontext.generateMipmap(this.glcontext.TEXTURE_2D);
+		} else {
+			// No, it's not a power of 2. Turn off mips and set
+			// wrapping to clamp to edge
+			this.glcontext.texParameteri(this.glcontext.TEXTURE_2D, this.glcontext.TEXTURE_WRAP_S, this.glcontext.CLAMP_TO_EDGE);
+			this.glcontext.texParameteri(this.glcontext.TEXTURE_2D, this.glcontext.TEXTURE_WRAP_T, this.glcontext.CLAMP_TO_EDGE);
+			this.glcontext.texParameteri(this.glcontext.TEXTURE_2D, this.glcontext.TEXTURE_MIN_FILTER, this.glcontext.LINEAR);
+		}*/
+
+		
+		
+		this.glcontext.uniform1i(this.uniformsMap["seed"], params.seed);
+		this.glcontext.uniform1i(this.uniformsMap["octaves"], params.octaves);
+		this.glcontext.uniform1i(this.uniformsMap["startingOctave"], params.startingOctave);
+		this.glcontext.uniform1i(this.uniformsMap["resolution"], this.size);
+		this.glcontext.uniform1f(this.uniformsMap["persistance"], params.persistance);
+		this.glcontext.uniform1f(this.uniformsMap["posZ"], params.posZ);
+		this.glcontext.uniform1f(this.uniformsMap["lacunarity"], params.lacunarity);
+
+		this.glcontext.uniform1i(this.uniformsMap["sampleCoords"], 0);
+	}
 
 }
+
+class WorleyGenerator extends GpuImageGenerator {
+	constructor (size: number, renderTarget = null) {
+		super(size, WorleyShaderSource, renderTarget);
+	}
+
+	initUniforms() {
+		this.uniformsMap["seed"]  = this.glcontext.getUniformLocation(this.program, "u_seed");
+		this.uniformsMap["octaves"] = this.glcontext.getUniformLocation(this.program, "u_octaves");
+		this.uniformsMap["startingOctave"] = this.glcontext.getUniformLocation(this.program, "u_startingOctave");
+		this.uniformsMap["lacunarity"] = this.glcontext.getUniformLocation(this.program, "u_lacunarity");
+		this.uniformsMap["resolution"] = this.glcontext.getUniformLocation(this.program, "u_resolution");
+		this.uniformsMap["persistance"] = this.glcontext.getUniformLocation(this.program, "u_persistance");
+		this.uniformsMap["sampleCoords"] = this.glcontext.getUniformLocation(this.program, "u_sampleCoords");
+		this.uniformsMap["posZ"] = this.glcontext.getUniformLocation(this.program, "u_posZ");
+	}
+
+	updateUniforms(params): void {
+		/*const level = 0;
+		const internalFormat = this.glcontext.RGB;
+		const border = 0;
+		const srcFormat = this.glcontext.RGB;
+		const srcType = this.glcontext.UNSIGNED_SHORT_5_6_5;
+
+		this.glcontext.texImage2D(this.glcontext.TEXTURE_2D, level, internalFormat,
+			size, size, border, srcFormat, srcType,
+						params.coordinatesSample);
+
+		// I dont think this is necesary
+		if (IsPowerOf2(size) && IsPowerOf2(size)) {
+			// Yes, it's a power of 2. Generate mips.
+			this.glcontext.generateMipmap(this.glcontext.TEXTURE_2D);
+		} else {
+			// No, it's not a power of 2. Turn off mips and set
+			// wrapping to clamp to edge
+			this.glcontext.texParameteri(this.glcontext.TEXTURE_2D, this.glcontext.TEXTURE_WRAP_S, this.glcontext.CLAMP_TO_EDGE);
+			this.glcontext.texParameteri(this.glcontext.TEXTURE_2D, this.glcontext.TEXTURE_WRAP_T, this.glcontext.CLAMP_TO_EDGE);
+			this.glcontext.texParameteri(this.glcontext.TEXTURE_2D, this.glcontext.TEXTURE_MIN_FILTER, this.glcontext.LINEAR);
+		}*/
+
+		
+		
+		this.glcontext.uniform1i(this.uniformsMap["seed"], params.seed);
+		this.glcontext.uniform1i(this.uniformsMap["octaves"], params.octaves);
+		this.glcontext.uniform1i(this.uniformsMap["startingOctave"], params.startingOctave);
+		this.glcontext.uniform1i(this.uniformsMap["resolution"], this.size);
+		this.glcontext.uniform1f(this.uniformsMap["persistance"], params.persistance);
+		this.glcontext.uniform1f(this.uniformsMap["posZ"], params.posZ);
+		this.glcontext.uniform1f(this.uniformsMap["lacunarity"], params.lacunarity);
+
+		this.glcontext.uniform1i(this.uniformsMap["sampleCoords"], 0);
+	}
+
+}
+
+export {PerlinGenerator, WorleyGenerator};

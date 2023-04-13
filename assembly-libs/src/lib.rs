@@ -1,5 +1,3 @@
-
-
 use wasm_bindgen::prelude::*;
 
 static PRIME1:u32 = 198491317;

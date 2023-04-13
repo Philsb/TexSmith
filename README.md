@@ -23,12 +23,21 @@ https://www.scratchapixel.com/lessons/procedural-generation-virtual-worlds/proce
 
 https://thebookofshaders.com/11/
 
+https://developer.nvidia.com/gpugems/gpugems/part-i-natural-effects/chapter-5-implementing-improved-perlin-noise
+
+https://lodev.org/cgtutor/randomnoise.html
+
 https://www.mdpi.com/1424-8220/20/4/1135
 
 https://www.hyena.net.ee/rwg/Perlin%20Noise%20Generator.pdf
 
 voronoi 
 https://thebookofshaders.com/12/
+
+
+https://distill.pub/selforg/2021/textures/
+
+
 Late to the party, but it is proven, that a function like below is never periodic.
 
     sin (2 * x) + sin(pi * x)

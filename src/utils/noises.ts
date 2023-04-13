@@ -1,5 +1,5 @@
 import { Clamp, Dot2D, Interpolation, MagnitudeSquared3D } from "./mathUtils";
-import init, * as wasm from "../../build/assembly-libs";
+//import init, * as wasm from "../../build/assembly-libs";
 //TODO: random library with hash algorithm
 const Noise = {
     /*
@@ -46,7 +46,6 @@ const Noise = {
 
     PerlinNoise3d : function({seed = 0, freq = 4, x = 0, y = 0, z = 0, customGradients = null, fade = Interpolation.SmoothStep}) {
     
-
         let quadrantX = Math.floor(x*freq);
         let quadrantY = Math.floor(y*freq);
         let quadrantZ = Math.floor(z*freq);
@@ -62,16 +61,16 @@ const Noise = {
         }*/
         if (customGradients != null) {
             
-            let rand1 = wasm.noise2D(quadrantX, quadrantY*freq, seed);
+            let rand1 = this.Noise2D(quadrantX, quadrantY*freq, seed);
             q00 = customGradients[rand1%customGradients.length]
             
-            let rand2 = wasm.noise2D((quadrantX+1)%freq, quadrantY*freq, seed);
+            let rand2 = this.Noise2D((quadrantX+1)%freq, quadrantY*freq, seed);
             q10 = customGradients[rand2%customGradients.length]
             
-            let rand3 = wasm.noise2D(quadrantX, ((quadrantY+1)%freq)*freq, seed);
+            let rand3 = this.Noise2D(quadrantX, ((quadrantY+1)%freq)*freq, seed);
             q01 = customGradients[rand3%customGradients.length]
             
-            let rand4 = wasm.noise2D((quadrantX+1)%freq,((quadrantY+1)%freq)*freq,seed);
+            let rand4 = this.Noise2D((quadrantX+1)%freq,((quadrantY+1)%freq)*freq,seed);
             q11 = customGradients[rand4%customGradients.length]
         }
         else {
@@ -273,11 +272,11 @@ const Noise = {
 
 } as const;
 
-const loadNoise = new Promise((resolve) => {
+/*const loadNoise = new Promise((resolve) => {
     init().then(() => {
             resolve(Noise);
         }
     );
-});
+});*/
 
-export default loadNoise;
+export default Noise;

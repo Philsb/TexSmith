@@ -13,8 +13,6 @@ const Interpolation = {
         return a + (Math.sqrt(1 - (alpha-1)**2))*(b - a);
     }
 
-
-
 };
 
 const InterpolationColor = {
