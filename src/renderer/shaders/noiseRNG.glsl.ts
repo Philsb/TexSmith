@@ -1,4 +1,6 @@
 const NoiseRng: string = `
+#define PI 3.1415926538
+
 const uint BITNOISE1 = uint(0xB5297A4D);
 const uint BITNOISE2 = uint(0x68E31DA4);
 const uint BITNOISE3 = uint(0x1B56C4E9);

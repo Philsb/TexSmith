@@ -1,5 +1,5 @@
-const DefaultVertexShader: string = `
-#version 300 es
+const DefaultVertexShader: string = 
+`#version 300 es
 precision mediump float;
 in vec2 vertPosition;
 out vec2 coord; 
@@ -11,13 +11,19 @@ void main()
 }
 `;
 
-const DefaultRenderToScreenShader: string = `
-    precision mediump float;
-    uniform sampler2D state;
-    void main(void) {
-        vec2 coord = vec2(gl_FragCoord)/64.0;
-        gl_FragColor = texture2D(state, coord);
-    }
+const DefaultRenderToScreenShader: string = 
+`#version 300 es
+precision mediump float;
+in vec2 coord;
+out vec4 fragColor;
+
+uniform sampler2D screen;
+uniform int resolution;
+
+void main(void) {
+    vec2 texCoord = vec2(gl_FragCoord)/float(resolution);
+    fragColor = texture(screen, texCoord);
+}
 `;
 
 export {DefaultRenderToScreenShader};

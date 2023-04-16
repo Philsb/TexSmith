@@ -6,8 +6,8 @@ import { paintCanvas } from './App';
 import reportWebVitals from './reportWebVitals';
 
 
-const imageSize = 4096;
-const root = document.getElementById('root');
+const imageSize = 512;
+const root = document.getElementById('canvas_slot');
 var canvas = root.appendChild(document.createElement("canvas"));
 canvas.width = imageSize;
 canvas.height = imageSize;

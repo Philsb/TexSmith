@@ -4,58 +4,14 @@ import './App.css';
 import loadNoise from './utils/noises';
 import { Clamp, Interpolation } from './utils/mathUtils';
 import { EvaluateColorGradient, NormalizeToRanges} from './utils/transforms';
-import {PerlinGenerator, WorleyGenerator} from './utils/generators';
+import {IterativeImageGeneration, PerlinGenerator, WorleyGenerator} from './utils/generators';
 import CustomCanvas from './components/canvas';
 import { GenerateShader } from './renderer/shader';
 
 const paintCanvas = async (canvasRef, imgSize) => {
-  const canvasContext = canvasRef.getContext("2d");
-  let worleyGenerator = new WorleyGenerator(imgSize);
-  let perlinGenerator = new PerlinGenerator(imgSize);
-
-  let b = 0.0;
-
-  let pixelsWorley = worleyGenerator.generateImage({
-    coordinatesSample: null,
-    seed: 4,
-    startingOctave: 2, 
-    octaves: 5,
-    lacunarity: 2,
-    persistance: 1.7,
-    posZ:0   
-  }).map((x,i) => {
-    return x *0.7 + 0.2;
-  });
-
-  let pixelsPerlin = perlinGenerator.generateImage({
-    coordinatesSample: null,
-    seed: 64,
-    startingOctave: 3, 
-    octaves: 8,
-    lacunarity: 2.6,
-    persistance: 2,
-    posZ:0  
-  }).map((x,i) => {
-    return Math.abs(x-0.5) * 1.4;
-  });
-
-  let pixels = new Float32Array(imgSize*imgSize);
-  for(let j = 0; j < imgSize*imgSize; j++) {
-    
-    pixels[j] = Interpolation.SmoothStep(pixelsPerlin[j], pixelsWorley[j], 0.6);
-  }
-  
-  const arr = new Uint8ClampedArray(imgSize*imgSize*4);
-  for (let index = 0; index < pixels.length; index++) {
-    arr[index*4] = pixels[index] * 255;
-    arr[index*4+1] = pixels[index] * 255;
-    arr[index*4+2] = pixels[index] * 255;
-    arr[index*4+3] = 255;
-  }
-
-  let imageData = new ImageData(arr, imgSize);
-  canvasContext.putImageData(imageData, 0, 0);
-  requestAnimationFrame(genImg);
+  //const canvasContext = canvasRef.getContext("2d");
+  let iterImage = new IterativeImageGeneration(imgSize, canvasRef);
+  iterImage.generateImage({});
 
   if (false) {
     let genImg = function (time) {

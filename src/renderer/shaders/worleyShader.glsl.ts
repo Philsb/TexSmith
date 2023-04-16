@@ -38,7 +38,6 @@ uniform float u_posZ;
 
 uniform sampler2D sampleCoords;
 
-#define PI 3.1415926538
 
 #NoiseRng
 #distanceSquared3D

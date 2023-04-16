@@ -28,9 +28,26 @@
   </head>
   <body>
     <noscript>You need to enable JavaScript to run this app.</noscript>
-    <div id="root">
-      
+    <div id="root" style="display: flex; flex-direction: row;">
+      <div id="canvas_slot"></div>
 
+      <div style="display: flex; flex-direction: column;">
+        <input type="range" min="0" max="7" value="3.2212" step="0.0001" oninput="this.nextElementSibling.value = this.value" id="range1">
+        <output>24</output>
+        <input type="range" min="0" max="7" value="2.1062" step="0.0001" oninput="this.nextElementSibling.value = this.value" id="range2">
+        <output>24</output>
+        <input type="range" min="0" max="7" value="2.1888" step="0.0001" oninput="this.nextElementSibling.value = this.value" id="range3">
+        <output>24</output>
+        <input type="range" min="0" max="7" value="2.6018" step="0.0001" oninput="this.nextElementSibling.value = this.value" id="range4">
+        <output>24</output>
+        <input type="range" min="0" max="7" value="0.9499" step="0.0001" oninput="this.nextElementSibling.value = this.value" id="range5">
+        <output>24</output>
+        <input type="range" min="0" max="7" value="2.354" step="0.0001" oninput="this.nextElementSibling.value = this.value" id="range6">
+        <output>24</output>
+        <button type="button" id="button">Reset Sim</button>
+      </div>
+      
+      
     </div>
     <!--
       This HTML file is a template.

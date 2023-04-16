@@ -37,7 +37,6 @@ uniform float posZ;
 
 uniform sampler2D sampleCoords;
 
-#define PI 3.1415926538
 
 #NoiseRng
 #octaveMix
